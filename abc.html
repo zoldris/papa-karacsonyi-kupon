@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Apa Karácsonyi Kuponjai 🎄</title>
+
+<style>
+body {
+    margin: 0;
+    padding: 20px;
+    font-family: "Segoe UI", Arial, sans-serif;
+    color: white;
+    background:
+        radial-gradient(circle at top, rgba(255,255,255,0.15), transparent 40%),
+        repeating-linear-gradient(
+            45deg,
+            rgba(255,255,255,0.03),
+            rgba(255,255,255,0.03) 10px,
+            transparent 10px,
+            transparent 20px
+        ),
+        linear-gradient(180deg, #0b3d2e, #145c43);
+    min-height: 100vh;
+    text-align: center;
+}
+
+.box {
+    max-width: 600px;
+    margin: 30px auto;
+    background: rgba(0,0,0,0.25);
+    padding: 20px;
+    border-radius: 16px;
+}
+
+.option {
+    background: white;
+    color: #0f5132;
+    padding: 12px;
+    border-radius: 12px;
+    margin: 10px 0;
+    cursor: pointer;
+}
+
+.option:hover { background: #eee; }
+
+button {
+    background: #dc3545;
+    color: white;
+    border: none;
+    padding: 12px 20px;
+    border-radius: 12px;
+    font-size: 16px;
+    cursor: pointer;
+    margin-top: 15px;
+}
+
+.error {
+    color: #ffcccc;
+    font-weight: bold;
+}
+
+.coupon {
+    background: white;
+    color: #0f5132;
+    border-radius: 18px;
+    padding: 18px;
+    margin: 16px auto;
+    max-width: 460px;
+    box-shadow: 0 8px 20px rgba(0,0,0,0.4);
+}
+
+.coupon.used { opacity: 0.45; }
+
+.reset {
+    background: #ffc107;
+    color: black;
+    font-weight: bold;
+}
+</style>
+</head>
+
+<body>
+
+<h1>🎄 Boldog Karácsonyt PAPA! 🎄</h1>
+
+<div id="quiz" class="box"></div>
+<div id="coupons" style="display:none;"></div>
+<button class="reset" style="display:none;" onclick="resetAll()">Összes kupon visszaállítása 🔄</button>
+
+<script>
+/* ===== ÁLLAPOTOK ===== */
+const QUIZ_KEY = "quiz_done";
+const COUPON_KEY = "apa_kuponok";
+
+/* ===== QUIZ ===== */
+const quizDiv = document.getElementById("quiz");
+let step = 0;
+
+const quiz = [
+    { q:"Mikor született Andris?", o:["2008.02.25","2008.01.18","2008.01.25","2009.01.25"], c:2 },
+    { q:"Hány kiló Szofi?", o:["4","4,5","5","7"], c:1 },
+    { q:"1–10 skálán mennyire idegesítő Dávid?", o:["2","4","7","10"], c:3 },
+    { q:"Mennyi 23123 : 41234 ?", o:["0,5423221","0,928374","0,29384783","0,560775089"], c:3 }
+];
+
+function showQuestion() {
+    const q = quiz[step];
+    quizDiv.innerHTML = `<h2>${q.q}</h2>`;
+    q.o.forEach((v,i)=>{
+        quizDiv.innerHTML += `<div class="option" onclick="check(${i})">${String.fromCharCode(65+i)}) ${v}</div>`;
+    });
+}
+
+function check(i) {
+    if (i === quiz[step].c) {
+        step++;
+        step < quiz.length ? showQuestion() : finalInput();
+    } else {
+        quizDiv.innerHTML = `<div class="error">❌ ROSSZ VÁLASZ<br>KEZD CSAK ELÖLRŐL</div>`;
+        step = 0;
+        setTimeout(showQuestion, 2000);
+    }
+}
+
+function finalInput() {
+    quizDiv.innerHTML = `
+        <h2>Írd be a helyes válaszok betűit:</h2>
+        <input id="code" placeholder="pl. CBDD" style="padding:10px;font-size:16px">
+        <br>
+        <button onclick="checkCode()">Ellenőrzés</button>
+    `;
+}
+
+function checkCode() {
+    if (document.getElementById("code").value.toUpperCase() === "CBDD") {
+        localStorage.setItem(QUIZ_KEY,"true");
+        quizDiv.style.display="none";
+        showCoupons();
+    } else {
+        quizDiv.innerHTML = `<div class="error">❌ ROSSZ VÁLASZ<br>KEZD CSAK ELÖLRŐL</div>`;
+        step=0;
+        setTimeout(showQuestion,2000);
+    }
+}
+
+/* ===== KUPONOK ===== */
+const couponsDiv = document.getElementById("coupons");
+const resetBtn = document.querySelector(".reset");
+
+const coupons = [
+    {t:"🚗 Kocsi takarítás",m:1},
+    {t:"☕ Kávé főzés",m:3},
+    {t:"🛒 Kisboltba menés",m:3},
+    {t:"💻 Laptop takarítás",m:3},
+    {t:"🤫 CSÖND LEGYEN",m:1},
+    {t:"💪 Izom mutatás",m:2}
+];
+
+let state = JSON.parse(localStorage.getItem(COUPON_KEY)) || coupons.map(c=>c.m);
+
+function showCoupons(){
+    couponsDiv.style.display="block";
+    resetBtn.style.display="block";
+    render();
+}
+
+function render(){
+    couponsDiv.innerHTML="";
+    coupons.forEach((c,i)=>{
+        const used = state[i]===0;
+        couponsDiv.innerHTML+=`
+            <div class="coupon ${used?"used":""}">
+                <h2>${c.t}</h2>
+                <p>Hátralévő: ${state[i]} / ${c.m}</p>
+                <button ${used?"disabled":""} onclick="use(${i})">
+                    ${used?"Elfogyott ✅":"Beváltom"}
+                </button>
+            </div>`;
+    });
+}
+
+function use(i){
+    if(state[i]>0){
+        state[i]--;
+        localStorage.setItem(COUPON_KEY,JSON.stringify(state));
+        render();
+    }
+}
+
+function resetAll(){
+    if(confirm("Biztos minden kupont visszaállítasz?")){
+        state = coupons.map(c=>c.m);
+        localStorage.setItem(COUPON_KEY,JSON.stringify(state));
+        render();
+    }
+}
+
+/* ===== INDÍTÁS ===== */
+if(localStorage.getItem(QUIZ_KEY)==="true"){
+    quizDiv.style.display="none";
+    showCoupons();
+} else {
+    showQuestion();
+}
+</script>
+
+</body>
+</html>
